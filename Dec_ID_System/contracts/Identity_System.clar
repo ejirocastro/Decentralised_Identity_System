@@ -105,9 +105,9 @@
     (- (var-get next-id) u1)
 )
 
-(define-read-only (get-vouches-for (user principal))
-    (filter vouches (lambda (vouch) (is-eq (get for-principal vouch) user)))
-)
+;; (define-read-only (get-vouches-for (user principal))
+;;     (filter vouches (lambda (vouch) (is-eq (get for-principal vouch) user)))
+;; )
 
 (define-read-only (get-trust-score (user principal))
     (match (map-get? identities user)
@@ -124,4 +124,34 @@
         false
     )
 )
+
+(define-public (register-identity (data-hash (buff 32)) (attributes-data {name-hash: (buff 32), email-hash: (buff 32), additional-data: (buff 32), profile-image: (optional (buff 32)), social-links: (list 5 (buff 32)), credentials: (list 10 {credential-hash: (buff 32), issuer: principal, timestamp: uint})}))
+    (let
+        ((user-principal tx-sender))
+        (asserts! (is-none (map-get? identities user-principal)) err-already-registered)
+        
+        (map-set identities
+            user-principal
+            {
+                id: (var-get next-id),
+                hash: data-hash,
+                status: "pending",
+                timestamp: (get-current-time),
+                expiration: (+ (get-current-time) (var-get identity-expiration)),
+                verifier: none,
+                trust-score: u0,
+                recovery-address: none
+            }
+        )
+        
+        (map-set identity-attributes
+            user-principal
+            attributes-data
+        )
+        
+        (var-set next-id (+ (var-get next-id) u1))
+        (ok true)
+    )
+)
+
 

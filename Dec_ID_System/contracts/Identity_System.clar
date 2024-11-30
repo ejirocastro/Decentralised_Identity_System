@@ -105,9 +105,9 @@
     (- (var-get next-id) u1)
 )
 
-;; (define-read-only (get-vouches-for (user principal))
-;;     (filter (lambda (vouch) (is-eq (get for-principal vouch) user)) (map-values vouches))
-;; )
+(define-read-only (get-vouches-for (user principal))
+    (filter (lambda (vouch) (is-eq (get for-principal vouch) user)) (map-values vouches))
+)
 
 (define-read-only (get-trust-score (user principal))
     (match (map-get? identities user)
@@ -164,6 +164,28 @@
         user-principal
         (merge current-attributes 
             {credentials: (unwrap! (as-max-len? (append (get credentials current-attributes) new-credential) u10) err-unauthorized)})))
+    )
+)
+
+(define-public (vouch-for-identity (user principal))
+    (let (
+        (vouching-principal tx-sender)
+        (vouch-key { for-principal: user, from-principal: vouching-principal })
+    )
+        (asserts! (not (is-eq user vouching-principal)) err-unauthorized)
+        (asserts! (is-none (map-get? vouches vouch-key)) err-already-vouched)
+        (asserts! (is-some (map-get? identities vouching-principal)) err-unauthorized)
+        
+        (map-set vouches
+            vouch-key
+            { timestamp: (get-current-time), weight: u1 }
+        )
+        
+        ;; Auto-verify if threshold reached
+        (if (>= (len (get-vouches-for user)) (var-get verification-threshold))
+            (verify-identity user "verified")
+            (ok true)
+        )
     )
 )
 

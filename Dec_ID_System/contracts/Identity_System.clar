@@ -105,9 +105,9 @@
     (- (var-get next-id) u1)
 )
 
-(define-read-only (get-vouches-for (user principal))
-    (filter (lambda (vouch) (is-eq (get for-principal vouch) user)) (map-values vouches))
-)
+;; (define-read-only (get-vouches-for (user principal))
+;;     (filter (lambda (vouch) (is-eq (get for-principal vouch) user)) (map-values vouches))
+;; )
 
 (define-read-only (get-trust-score (user principal))
     (match (map-get? identities user)
@@ -164,6 +164,19 @@
         user-principal
         (merge current-attributes 
             {credentials: (unwrap! (as-max-len? (append (get credentials current-attributes) new-credential) u10) err-unauthorized)})))
+    )
+)
+
+(define-public (set-recovery-address (recovery principal))
+    (let (
+        (user-principal tx-sender)
+        (current-identity (unwrap! (map-get? identities user-principal) err-not-registered))
+    )
+        (map-set identities
+            user-principal
+            (merge current-identity {recovery-address: (some recovery)})
+        )
+        (ok true)
     )
 )
 

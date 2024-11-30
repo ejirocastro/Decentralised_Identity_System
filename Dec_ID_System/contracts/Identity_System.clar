@@ -11,3 +11,8 @@
 (define-constant err-expired (err u105))
 (define-constant err-invalid-status (err u106))
 (define-constant err-already-vouched (err u107))
+
+;; Data Variables
+(define-data-var next-id uint u1)
+(define-data-var verification-threshold uint u3)  ;; Number of vouches needed for auto-verification
+(define-data-var identity-expiration uint u52560) ;; Default expiration in blocks (approximately 1 year)

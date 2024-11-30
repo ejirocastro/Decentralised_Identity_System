@@ -180,6 +180,25 @@
     )
 )
 
+(define-public (recover-identity (new-data-hash (buff 32)))
+    (let (
+        (user-principal tx-sender)
+        (identity-to-recover (unwrap! (map-get? identities user-principal) err-not-registered))
+    )
+        (asserts! (is-eq (some tx-sender) (get recovery-address identity-to-recover)) err-unauthorized)
+        
+        (map-set identities
+            user-principal
+            (merge identity-to-recover {
+                hash: new-data-hash,
+                timestamp: (get-current-time)
+            })
+        )
+        (ok true)
+    )
+)
+
+
 (define-public (vouch-for-identity (user principal))
     (let (
         (vouching-principal tx-sender)

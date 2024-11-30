@@ -81,3 +81,47 @@
     )
 )
 
+;; Read-only Functions
+(define-read-only (get-identity (user principal))
+    (map-get? identities user)
+)
+
+(define-read-only (get-identity-attributes (user principal))
+    (map-get? identity-attributes user)
+)
+
+(define-read-only (get-identity-claims (user principal))
+    (map-get? identity-claims user)
+)
+
+(define-read-only (is-identity-verified (user principal))
+    (match (map-get? identities user)
+        identity (is-eq (get status identity) "verified")
+        false
+    )
+)
+
+(define-read-only (get-identity-count)
+    (- (var-get next-id) u1)
+)
+
+(define-read-only (get-vouches-for (user principal))
+    (filter vouches (lambda (vouch) (is-eq (get for-principal vouch) user)))
+)
+
+(define-read-only (get-trust-score (user principal))
+    (match (map-get? identities user)
+        identity (get trust-score identity)
+        u0
+    )
+)
+
+(define-read-only (is-identity-active (user principal))
+    (match (map-get? identities user)
+        identity (and 
+            (is-eq (get status identity) "verified")
+            (not (is-identity-expired identity)))
+        false
+    )
+)
+

@@ -59,6 +59,14 @@
     (list 20 { claim-type: (string-ascii 30), claim-hash: (buff 32), timestamp: uint })
 )
 
+;; Add this to the existing maps section
+(define-map vouch-index
+    uint 
+    { for-principal: principal, from-principal: principal }
+)
+
+(define-data-var next-vouch-id uint u1)
+
 ;; Private Functions
 (define-private (is-contract-owner)
     (is-eq tx-sender contract-owner)
@@ -105,9 +113,9 @@
     (- (var-get next-id) u1)
 )
 
-;; (define-read-only (get-vouches-for (user principal))
-;;     (filter (lambda (vouch) (is-eq (get for-principal vouch) user)) (map-values vouches))
-;; )
+(define-read-only (get-vouches-for (user principal))
+    (filter (lambda (vouch) (is-eq (get for-principal vouch) user)) (map-values vouches))
+)
 
 (define-read-only (get-trust-score (user principal))
     (match (map-get? identities user)
@@ -225,6 +233,25 @@
     )
 )
 
+(define-public (update-trust-score (user principal))
+    (let (
+        (current-identity (unwrap! (map-get? identities user) err-not-registered))
+        (new-score (calculate-trust-score user))
+    )
+        (asserts! (is-contract-owner) err-owner-only)
+        
+        (map-set identities
+            user
+            (merge current-identity {
+                trust-score: new-score
+            })
+        )
+        (ok true)
+    )
+)
+
+
+;; Modified vouch-for-identity function
 (define-public (vouch-for-identity (user principal))
     (let (
         (vouching-principal tx-sender)
@@ -234,13 +261,23 @@
         (asserts! (is-none (map-get? vouches vouch-key)) err-already-vouched)
         (asserts! (is-some (map-get? identities vouching-principal)) err-unauthorized)
         
+        ;; Add to vouches map
         (map-set vouches
             vouch-key
             { timestamp: (get-current-time), weight: u1 }
         )
         
+        ;; Add to vouch index
+        (map-set vouch-index
+            (var-get next-vouch-id)
+            vouch-key
+        )
+        
+        ;; Increment vouch ID
+        (var-set next-vouch-id (+ (var-get next-vouch-id) u1))
+        
         ;; Auto-verify if threshold reached
-        (if (>= (len (get-vouches-for user)) (var-get verification-threshold))
+        (if (>= (get-vouch-count user) (var-get verification-threshold))
             (verify-identity user "verified")
             (ok true)
         )

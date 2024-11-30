@@ -72,14 +72,14 @@
     (> (get-current-time) (get expiration identity))
 )
 
-(define-private (calculate-trust-score (user principal))
-    (let (
-        (vouch-count (len (get-vouches-for user)))
-        (credential-count (len (default-to (list) (get credentials (default-to {name-hash: 0x00, email-hash: 0x00, additional-data: 0x00, profile-image: none, social-links: (list), credentials: (list)} (map-get? identity-attributes user))))))
-    )
-    (min u100 (+ (* vouch-count u10) (* credential-count u5)))
-    )
-)
+;; (define-private (calculate-trust-score (user principal))
+;;     (let (
+;;         (vouch-count (len (get-vouches-for user)))
+;;         (credential-count (len (default-to (list) (get credentials (default-to {name-hash: 0x00, email-hash: 0x00, additional-data: 0x00, profile-image: none, social-links: (list), credentials: (list)} (map-get? identity-attributes user))))))
+;;     )
+;;     (min u100 (+ (* vouch-count u10) (* credential-count u5)))
+;;     )
+;; )
 
 ;; Read-only Functions
 (define-read-only (get-identity (user principal))
@@ -106,7 +106,7 @@
 )
 
 ;; (define-read-only (get-vouches-for (user principal))
-;;     (filter vouches (lambda (vouch) (is-eq (get for-principal vouch) user)))
+;;     (filter (lambda (vouch) (is-eq (get for-principal vouch) user)) (map-values vouches))
 ;; )
 
 (define-read-only (get-trust-score (user principal))
@@ -153,5 +153,19 @@
         (ok true)
     )
 )
+
+(define-public (add-credential (credential-hash (buff 32)))
+    (let (
+        (user-principal tx-sender)
+        (current-attributes (unwrap! (map-get? identity-attributes user-principal) err-not-registered))
+        (new-credential {credential-hash: credential-hash, issuer: tx-sender, timestamp: (get-current-time)})
+    )
+    (ok (map-set identity-attributes
+        user-principal
+        (merge current-attributes 
+            {credentials: (unwrap! (as-max-len? (append (get credentials current-attributes) new-credential) u10) err-unauthorized)})))
+    )
+)
+
 
 

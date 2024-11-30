@@ -210,6 +210,21 @@
     )
 )
 
+(define-public (extend-identity-expiration)
+    (let (
+        (user-principal tx-sender)
+        (current-identity (unwrap! (map-get? identities user-principal) err-not-registered))
+    )
+        (map-set identities
+            user-principal
+            (merge current-identity {
+                expiration: (+ (get-current-time) (var-get identity-expiration))
+            })
+        )
+        (ok true)
+    )
+)
+
 (define-public (vouch-for-identity (user principal))
     (let (
         (vouching-principal tx-sender)

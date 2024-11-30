@@ -198,6 +198,17 @@
     )
 )
 
+(define-public (add-claim (claim-type (string-ascii 30)) (claim-hash (buff 32)))
+    (let (
+        (user-principal tx-sender)
+        (current-claims (default-to (list) (map-get? identity-claims user-principal)))
+        (new-claim { claim-type: claim-type, claim-hash: claim-hash, timestamp: (get-current-time) })
+    )
+        (ok (map-set identity-claims
+            user-principal
+            (unwrap! (as-max-len? (append current-claims new-claim) u20) err-unauthorized)))
+    )
+)
 
 (define-public (vouch-for-identity (user principal))
     (let (
